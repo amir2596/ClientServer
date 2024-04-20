@@ -9,6 +9,10 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.CharsetUtil;
+import io.netty.util.concurrent.EventExecutorGroup;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Server {
     private final int port;
@@ -27,8 +31,9 @@ public class Server {
                     .handler(new ChannelInitializer<NioDatagramChannel>() {
                         @Override
                         protected void initChannel(NioDatagramChannel ch) {
-                            ch.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
-                            ch.pipeline().addLast(new GameServerHandler());
+                            ChannelPipeline pipeline = ch.pipeline();
+                            pipeline.addLast(new LoggingHandler(LogLevel.INFO));
+                            pipeline.addLast(new ServerHandler());
                         }
                     });
 
@@ -44,7 +49,14 @@ public class Server {
         new Server(port).start();
     }
 
-    private static class GameServerHandler extends SimpleChannelInboundHandler<DatagramPacket> {
+    private static class ServerHandler extends SimpleChannelInboundHandler<DatagramPacket> {
+        private final Map<String, Channel> connectedClients = new ConcurrentHashMap<>();
+
+        @Override
+        public void channelRead(ChannelHandlerContext ctx, Object msg) {
+
+        }
+
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) {
             ByteBuf content = packet.content();
@@ -63,10 +75,17 @@ public class Server {
         }
 
         @Override
+        public void channelActive(ChannelHandlerContext ctx) throws Exception {
+
+        }
+
+        @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
             cause.printStackTrace();
             ctx.close();
         }
 
     }
+
+
 }
