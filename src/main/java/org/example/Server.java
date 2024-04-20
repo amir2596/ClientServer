@@ -8,10 +8,12 @@ import io.netty.channel.socket.DatagramPacket;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.EventExecutorGroup;
 
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Server {
@@ -32,7 +34,7 @@ public class Server {
                         @Override
                         protected void initChannel(NioDatagramChannel ch) {
                             ChannelPipeline pipeline = ch.pipeline();
-                            pipeline.addLast(new LoggingHandler(LogLevel.INFO));
+                            //pipeline.addLast(new LoggingHandler(LogLevel.INFO));
                             pipeline.addLast(new ServerHandler());
                         }
                     });
@@ -50,12 +52,9 @@ public class Server {
     }
 
     private static class ServerHandler extends SimpleChannelInboundHandler<DatagramPacket> {
-        private final Map<String, Channel> connectedClients = new ConcurrentHashMap<>();
 
-        @Override
-        public void channelRead(ChannelHandlerContext ctx, Object msg) {
-
-        }
+        private static final ConcurrentHashMap<Integer, Channel> channels = new ConcurrentHashMap<>();
+        AttributeKey<Integer> clientIdKey = AttributeKey.valueOf("clientId");
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) {
@@ -76,7 +75,19 @@ public class Server {
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
+            Integer clientId = ctx.channel().attr(clientIdKey).get();
+            System.out.println("Client ID: " + clientId);
+        }
 
+        @Override
+        public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
+            ctx.channel().attr(clientIdKey).set(generateClientId());
+            super.channelRegistered(ctx);
+        }
+
+        private int generateClientId() {
+            // Replace this with your own logic to generate a client ID
+            return new Random().nextInt(1000);
         }
 
         @Override
